@@ -8,8 +8,8 @@ const WATCHLISTS = [
   { id: '170416987', url: 'https://www.tradingview.com/watchlists/170416987/' },
 ];
 
-// Matches EXCHANGE:TICKER format (e.g. NASDAQ:AAPL, NYSE:BRK.A, NASDAQ:BF.B)
-const SYMBOL_RE = /^[A-Z]{1,10}:[A-Z0-9][A-Z0-9.]{0,11}$/;
+// Matches EXCHANGE:TICKER format including dots and slashes (e.g. NYSE:BRK.A, NYSE:ALB/PA)
+const SYMBOL_RE = /^[A-Z]{1,10}:[A-Z0-9][A-Z0-9./]{0,11}$/;
 
 function extractSymbols(obj, found = new Set()) {
   if (typeof obj === 'string') {
@@ -26,6 +26,7 @@ async function scrapeWatchlist(browser, watchlist) {
   const page = await browser.newPage();
   const capturedSymbols = new Set();
   let watchlistName = `Watchlist ${watchlist.id}`;
+  const responsePromises = [];
 
   // Set realistic browser headers
   await page.setExtraHTTPHeaders({
@@ -33,17 +34,17 @@ async function scrapeWatchlist(browser, watchlist) {
   });
 
   // Intercept all JSON responses and search for symbols
-  page.on('response', async (response) => {
+  // Track every promise so we can await them all before closing
+  page.on('response', (response) => {
     const ct = response.headers()['content-type'] || '';
     if (!ct.includes('json')) return;
-    try {
-      const json = await response.json();
-      // Capture watchlist name if present
+    const p = response.json().then(json => {
       if (json.name && typeof json.name === 'string' && json.name.length > 0) {
         watchlistName = json.name;
       }
       extractSymbols(json, capturedSymbols);
-    } catch (_) {}
+    }).catch(() => {});
+    responsePromises.push(p);
   });
 
   try {
@@ -51,6 +52,9 @@ async function scrapeWatchlist(browser, watchlist) {
 
     // Give dynamic content extra time to load
     await page.waitForTimeout(4000);
+
+    // Wait for all in-flight response handlers to finish
+    await Promise.allSettled(responsePromises);
 
     // DOM fallback: look for data attributes TradingView uses
     if (capturedSymbols.size === 0) {
