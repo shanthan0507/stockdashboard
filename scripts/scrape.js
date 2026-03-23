@@ -8,8 +8,8 @@ const WATCHLISTS = [
   { id: '170416987', url: 'https://www.tradingview.com/watchlists/170416987/' },
 ];
 
-// Matches EXCHANGE:TICKER format (e.g. NASDAQ:AAPL, NYSE:GM)
-const SYMBOL_RE = /^[A-Z]{1,10}:[A-Z0-9]{1,12}$/;
+// Matches EXCHANGE:TICKER format (e.g. NASDAQ:AAPL, NYSE:BRK.A, NASDAQ:BF.B)
+const SYMBOL_RE = /^[A-Z]{1,10}:[A-Z0-9][A-Z0-9.]{0,11}$/;
 
 function extractSymbols(obj, found = new Set()) {
   if (typeof obj === 'string') {
