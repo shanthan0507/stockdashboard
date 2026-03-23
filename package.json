@@ -1,0 +1,13 @@
+{
+  "name": "stock-dashboard",
+  "version": "1.0.0",
+  "description": "Automated stock watchlist dashboard",
+  "scripts": {
+    "scrape": "node scripts/scrape.js",
+    "generate": "node scripts/generate.js",
+    "build": "npm run scrape && npm run generate"
+  },
+  "dependencies": {
+    "playwright": "^1.41.0"
+  }
+}
